@@ -3,6 +3,7 @@
 #include <vector>
 #include <cmath>
 #include <string>
+#include <chrono>
 
 using namespace std;
 
@@ -32,7 +33,7 @@ vector<vertexStart> distanceGraph;
 double getTotalDistance(vector<coordinate>&);
 void extinguishFire(int, int, vector<coordinate>&, int);
 double getDistanceFromDistanceTable(int, int);
-void heapPerm(int);
+void heapPerm(int, vector<coordinate>&);
 void readLocation(void);
 void saveLocation(void);
 double getDistanceBetweenPoints(coordinate, coordinate);
@@ -45,12 +46,29 @@ double getAbsolute(double x);
 void createExtinguishTable(int, int);
 
 int main(void) {
+	auto start = chrono::high_resolution_clock::now();
 	readLocation();
 	//there exists fire
 	if (distanceGraph.size() > 1) {
-		heapPerm(fire.size());
+		//permutation
+		for (int i = 0; i < fire.size(); i++) {
+			vector<coordinate> firedupe = fire;
+			swap(firedupe.at(i), firedupe.back());
+			heapPerm(firedupe.size() - 1, firedupe);
+		}
+		//heapPerm(fire.size());
 	}
 	saveLocation();
+	for (auto x : shortest) {
+		cout << x.name << " ";
+	}
+	cout << minDistance;
+	cout << endl;
+	auto stop = chrono::high_resolution_clock::now();
+	auto duration = chrono::duration_cast<chrono::milliseconds> (stop - start).count();
+	cout << "dist = 1293.02 time = 3227 ms" << endl;
+	printf(" %lld ms \n", duration);
+
 	return 0;
 }
 
@@ -143,12 +161,17 @@ double getDistanceFromDistanceTable(int indexStart, int indexEnd) {
 	return distanceBetweenPoints;
 }
 
-void heapPerm(int length)
+void heapPerm(int length, vector<coordinate>& toPermute)
 {
 	if (length == 1)
 	{
 		vector<coordinate> temp;
-		temp = fire;
+		temp = toPermute;
+		for (coordinate x : temp)
+		{
+			cout << x.name << " ";
+		}
+		cout << endl;
 		//compute shortest path that can extinguish all fire
 		double currentDistance = getTotalDistance(temp);
 		if (currentDistance < minDistance) {
@@ -159,20 +182,18 @@ void heapPerm(int length)
 	}
 	else
 	{
-		coordinate dummy;
 		length -= 1;
-		heapPerm(length);
+		heapPerm(length, toPermute);
 		for (int i = 0; i < length; i++) {
-			dummy = fire.at(length);
 			if (length % 2 != 0)
 			{
-				swap(fire.at(i), fire.at(length));
+				swap(toPermute.at(i), toPermute.at(length));
 			}
 			else
 			{
-				swap(fire.front(), fire.at(length));
+				swap(toPermute.front(), toPermute.at(length));
 			}
-			heapPerm(length);
+			heapPerm(length, toPermute);
 		}
 	}
 }
@@ -222,8 +243,9 @@ void readLocation(void) {
 		inFile.close();
 	}
 
-	//insert all vertex name into distanceGraph (X check)
+	//insert all vertex name into distanceGraph
 	vertexEnd destination;
+
 	for (int i = 0; i < distanceGraph.size(); i++)
 	{
 		distanceGraph.at(i).edgeList.reserve(distanceGraph.size() - (i + 1));
