@@ -51,6 +51,7 @@ int main(void) {
 	//there exists fire
 	if (distanceGraph.size() > 1) {
 		//permutation
+#pragma omp parallel for
 		for (int i = 0; i < fire.size(); i++) {
 			vector<coordinate> firedupe = fire;
 			swap(firedupe.at(i), firedupe.back());
@@ -167,13 +168,14 @@ void heapPerm(int length, vector<coordinate>& toPermute)
 	{
 		vector<coordinate> temp;
 		temp = toPermute;
-		for (coordinate x : temp)
-		{
-			cout << x.name << " ";
-		}
-		cout << endl;
+		//for (coordinate x : temp)
+		//{
+		//	cout << x.name << " ";
+		//}
+		//cout << endl;
 		//compute shortest path that can extinguish all fire
 		double currentDistance = getTotalDistance(temp);
+#pragma omp critical
 		if (currentDistance < minDistance) {
 			minDistance = currentDistance;
 			shortest = temp;
@@ -201,7 +203,6 @@ void heapPerm(int length, vector<coordinate>& toPermute)
 void readLocation(void) {
 	struct coordinate temp;
 	vertexStart pointInTerrain;
-
 	string txt;
 	ifstream inFile("terrain.txt");
 	if (!inFile.is_open()) {
