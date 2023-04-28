@@ -28,7 +28,7 @@ struct vertexStart {
 coordinate airport;
 vector<coordinate> fire;
 vector<coordinate> shortest;
-double minDistance = INT64_MAX;
+double minDistance = INFINITY;
 vector<vertexStart> distanceGraph;
 
 double getTotalDistance(vector<coordinate>&);
