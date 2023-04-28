@@ -11,7 +11,7 @@ struct coordinate {
 	string name = "";
 	int x = 0;
 	int y = 0;
-}airport;
+}
 
 struct vertexEnd
 {
@@ -25,6 +25,7 @@ struct vertexStart {
 	vector<vertexEnd> edgeList;
 };
 
+coordinate airport;
 vector<coordinate> fire;
 vector<coordinate> shortest;
 double minDistance = INT64_MAX;
