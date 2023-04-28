@@ -64,8 +64,8 @@ int main(void) {
 				swap(firedupe.at(i), firedupe.back());
 				heapPerm(firedupe.size() - 1, firedupe);
 			}
-			//heapPerm(fire.size());
 		}
+
 		saveLocation();
 		for (auto x : shortest) {
 			cout << x.name << " ";
@@ -107,14 +107,15 @@ double getTotalDistance(vector<coordinate>& fireTemp) {
 		indexPreviousFireTemp = getVertexIndex(fireTemp.at(i - 1).name);
 		indexCurrentFireTemp = getVertexIndex(fireTemp.at(i).name);
 		totalDistance += getDistanceFromDistanceTable(indexPreviousFireTemp, indexCurrentFireTemp);
+		//stop calculate if larger than minDist	
+		if (totalDistance >= minDistance)
+		{
+			return totalDistance;
+		}
+
 		if (i + 1 < fireTemp.size())
 		{
 			extinguishFire(indexPreviousFireTemp, indexCurrentFireTemp, fireTemp, i + 1);
-			//stop calculate if larger than minDist	
-			if (totalDistance >= minDistance)
-			{
-				return totalDistance;
-			}
 			//check if the point can reach to the end(airport) and extinguish all remaining fire
 			if (fireTemp.size() > 2)
 			{
@@ -339,6 +340,7 @@ double getAbsolute(double x)
 }
 
 void createExtinguishTable() {
+
 	for (int iStart = 0; iStart < distanceGraph.size(); iStart++)
 	{
 		for (int iEnd = iStart + 1; iEnd < distanceGraph.size(); iEnd++)
@@ -408,7 +410,6 @@ void createDistanceTable() {
 	//insert all vertex name into distanceGraph
 	vertexEnd destination;
 
-#pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < distanceGraph.size(); i++)
 	{
 		distanceGraph.at(i).edgeList.reserve(distanceGraph.size() - (i + 1));
