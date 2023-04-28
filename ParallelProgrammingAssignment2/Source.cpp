@@ -57,7 +57,7 @@ int main(void) {
 
 		//there exists fire
 		if (distanceGraph.size() > 1) {
-			//permutation
+			//parallel permutation to do brute force
 #pragma omp parallel for
 			for (int i = 0; i < fire.size(); i++) {
 				vector<coordinate> firedupe = fire;
@@ -67,15 +67,6 @@ int main(void) {
 		}
 
 		saveLocation();
-		for (auto x : shortest) {
-			cout << x.name << " ";
-		}
-		cout << minDistance;
-		cout << endl;
-		auto stop = chrono::high_resolution_clock::now();
-		auto duration = chrono::duration_cast<chrono::milliseconds> (stop - start).count();
-		cout << "dist = 1293.02 time = 3227 ms" << endl;
-		printf(" %lld ms \n", duration);
 	}
 
 	return 0;
@@ -177,11 +168,7 @@ void heapPerm(int length, vector<coordinate>& toPermute)
 	{
 		vector<coordinate> temp;
 		temp = toPermute;
-		//for (coordinate x : temp)
-		//{
-		//	cout << x.name << " ";
-		//}
-		//cout << endl;
+
 		//compute shortest path that can extinguish all fire
 		double currentDistance = getTotalDistance(temp);
 #pragma omp critical
