@@ -31,7 +31,7 @@ double minDistance = INFINITY;
 vector<vertexStart> distanceGraph;
 
 double getTotalDistance(vector<coordinate>&);
-void extinguishFire(int, int, vector<coordinate>&, int);
+bool extinguishFire(int, int, vector<coordinate>&, int);
 double getDistanceFromDistanceTable(int, int);
 void heapPerm(int, vector<coordinate>&);
 bool readLocation(void);
@@ -75,18 +75,36 @@ double getTotalDistance(vector<coordinate>& fireTemp) {
 	int indexFirstFireTemp = getVertexIndex(fireTemp.front().name);
 	int indexLastFireTemp;
 	int indexAirport = 0;
+	int fireExtinguishedNum = 0;
+	vector<coordinate> fireTemp2;
+	coordinate nextVertex;
+
+	double distanceComparedIgnoredExtinguished = 0;
+	double distanceComparedPassedExtinguished = 0;
+
 	//get the distance between airport and the first fire
 	totalDistance += getDistanceFromDistanceTable(indexAirport, indexFirstFireTemp);
 
 	if (fireTemp.size() > 1) {
+		fireTemp2 = fireTemp;
 		//extinguishFire between airport and first fire
-		extinguishFire(indexAirport, indexFirstFireTemp, fireTemp, 1);
+		if (extinguishFire(indexAirport, indexFirstFireTemp, fireTemp2, 1))
+		{
+			fireExtinguishedNum = fireTemp2.size() - fireTemp.size();
+			//there exist fire other than airport first fire
+			if (fireTemp2.size() > 2)
+			{
+				nextVertex = fireTemp2.at(2);
+				distanceComparedIgnoredExtinguished = totalDistance + getDistanceFromDistanceTable(indexFirstFireTemp, getVertexIndex(fireTemp2.at(1).name)) + getDistanceFromDistanceTable(getVertexIndex(fireTemp2.at(1).name), getVertexIndex(fireTemp2.at(2).name));
+				distanceComparedPassedExtinguished = totalDistance + getDistanceFromDistanceTable(indexFirstFireTemp,getVertexIndex(fireTemp.at(2).name))
+			}
+		}
 	}
 	//only a fire in the terrain
 	else
 		return totalDistance;
 
-	vector<coordinate> fireTemp2;
+
 	int indexPreviousFireTemp;
 	int indexCurrentFireTemp;
 
@@ -131,8 +149,9 @@ double getTotalDistance(vector<coordinate>& fireTemp) {
 	return totalDistance;
 }
 
-void extinguishFire(int indexStart, int indexEnd, vector<coordinate>& fireTemp, int surroundingFireIndex) {
+bool extinguishFire(int indexStart, int indexEnd, vector<coordinate>& fireTemp, int surroundingFireIndex) {
 
+	bool extinguished = false;
 	exchangeValue(indexStart, indexEnd);
 	indexEnd -= (indexStart + 1);
 
@@ -143,6 +162,7 @@ void extinguishFire(int indexStart, int indexEnd, vector<coordinate>& fireTemp, 
 			if (distanceGraph.at(indexStart).edgeList.at(indexEnd).fireExtinguished.at(i).name.compare(fireTemp.at(j).name) == 0)
 			{
 				//fire extinguished is found
+				extinguished = true;
 				surroundingFireIndex = j;
 				fireTemp.erase(fireTemp.begin() + j);
 				//escape for loop
@@ -150,6 +170,7 @@ void extinguishFire(int indexStart, int indexEnd, vector<coordinate>& fireTemp, 
 			}
 		}
 	}
+	return extinguished;
 }
 
 double getDistanceFromDistanceTable(int indexStart, int indexEnd) {
