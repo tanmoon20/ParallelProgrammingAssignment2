@@ -47,7 +47,6 @@ void createExtinguishTable();
 void createDistanceTable();
 
 int main(void) {
-	auto start = chrono::high_resolution_clock::now();
 
 	if (readLocation())
 	{
