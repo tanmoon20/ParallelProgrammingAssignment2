@@ -3,6 +3,7 @@
 #include <vector>
 #include <cmath>
 #include <string>
+#include <map>
 
 using namespace std;
 
@@ -10,12 +11,13 @@ struct coordinate {
 	string name = "";
 	int x = 0;
 	int y = 0;
-}airport;
+};
 
 struct vertexEnd
 {
 	string destinationName;
 	double distance = -1.0;
+	map<int, bool> extinguished;
 	vector<coordinate> fireExtinguished;
 };
 
@@ -24,10 +26,34 @@ struct vertexStart {
 	vector<vertexEnd> edgeList;
 };
 
+struct route {
+	vector<int> passedVertex;
+	vector<int> extinguishedFire;
+	map<int, bool> extinguished;
+};
+
+struct FireExtinguished
+{
+	map<int, bool> extinguished;
+	int totalExtinguished = 0;
+};
+
+coordinate airport;
 vector<coordinate> fire;
 vector<coordinate> shortest;
-double minDistance = INT64_MAX;
+double minDistance = INFINITY;
 vector<vertexStart> distanceGraph;
+//-------------new!!!
+//store coordinate and name of terrain points
+vector<coordinate> terrain;
+//store the number of fire name;
+int* shortestAirplaneToAirplane;
+int* fires;
+route** shortestRoutes;
+double** distanceMatrix;
+map<int, bool>** extinguishedMatrix;
+//record fireExtinguished of current permutation of fires
+FireExtinguished extinguished;
 
 double getTotalDistance(vector<coordinate>&);
 void extinguishFire(int, int, vector<coordinate>&, int);
@@ -36,6 +62,7 @@ void heapPerm(int);
 void readLocation(void);
 void saveLocation(void);
 double getDistanceBetweenPoints(coordinate, coordinate);
+double getDistanceBetweenPointsNew(int start, int end);
 double getShortestDistanceFromPointToLine(double, double, double, coordinate);
 int getVertexIndex(string);
 void exchangeValue(int&, int&);
@@ -43,14 +70,326 @@ bool definitelyLessThan(float, float);
 bool essentiallyEqual(float, float);
 double getAbsolute(double x);
 void createExtinguishTable(int, int);
+void createExtinguishTableNew();
+void heapPermNew(int length);
+double getTotalDistanceNew(void);
+bool extinguishFireNew(int indexStart, int indexEnd, int firePoint);
+
+bool extinguishFireNew(int indexStart, int indexEnd, int firePoint) {
+
+	return extinguishedMatrix[indexStart][indexEnd].find(firePoint)->second;
+}
+
+double getTotalDistanceNew(void) {
+	int firesSize = terrain.size() - 1;
+	double totalDistance = 0;
+	//get the distance between airport and the first fire
+	totalDistance += distanceMatrix[0][fires[0]];
+
+	for (int i = 1; i <= firesSize; i++)
+	{
+		extinguished.extinguished.insert({ i,false });
+	}
+	
+
+	//if terrain has more than 1 fire
+	if (terrain.size() > 2) {
+		//extinguishFire between airport and first fire
+		for (int i = 0; i < firesSize; i++)
+		{
+			if (extinguishedMatrix[0][fires[0]].find(fires[i])->second)
+			{
+				extinguished.extinguished.find(fires[i])->second = true;
+				extinguished.totalExtinguished++;
+			}
+		}
+	}
+	else
+		return totalDistance;
+
+	vector<coordinate> fireTemp2;
+	int indexPreviousFireTemp;
+	int indexCurrentFireTemp;
+
+	// extinguish fire between fire points
+	for (int i = 1; i < firesSize; i++)
+	{
+		//visit fire not extinguished
+		if (!extinguished.extinguished.find(fires[i])->second) {
+			totalDistance += distanceMatrix[fires[i - 1]][fires[i]];
+			//check if fire ahead is extinguishable
+			if (i + 1 < firesSize)
+			{
+				//stop calculate if larger than minDist	
+				if (totalDistance >= minDistance)
+				{
+					return totalDistance;
+				}
+
+				if (extinguishFireNew(i - 1, i, i + 1))
+				{
+					extinguished.extinguished.find(fires[i])->second = true;
+					extinguished.totalExtinguished++;
+				}
+				
+				//check if the point can reach to the end(airport) and extinguish all remaining fire
+				if (extinguished.totalExtinguished > 2)
+				{
+					for (int j = i + 1; j < firesSize; j++)
+					{
+						if (!extinguished.extinguished.find(fires[i])->second)
+						{
+							if (extinguishFireNew(0, i, j))
+							{
+								if (j == firesSize - 1)
+								{
+									return totalDistance + distanceMatrix[0][fires[i]];
+								}
+							}
+							else
+								break;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	//get the distance between airport and the last fire
+	totalDistance += distanceMatrix[0][fires[firesSize-1]];
+	return totalDistance;
+}
+
+
+void heapPermNew(int length)
+{
+	if (length == 1)
+	{
+		for (int i = 0; i < terrain.size() - 2; i++)
+		{
+			cout << fires[i] << " ";
+		}
+		cout << endl;
+		//compute shortest path that can extinguish all fire
+		double currentDistance = getTotalDistanceNew();
+		if (currentDistance < minDistance) {
+			minDistance = currentDistance;
+			for (int i = 1; i < terrain.size(); i++)
+			{
+				if (!extinguished.extinguished.find(i - 1)->second)
+				{
+					shortestAirplaneToAirplane[i] = 1;
+				}
+				else
+				{
+					shortestAirplaneToAirplane[i] = 0;
+				}
+			}
+		}
+		extinguished.extinguished.clear();
+		extinguished.totalExtinguished = 0;
+	}
+	else
+	{
+		length -= 1;
+		heapPermNew(length);
+		for (int i = 0; i < length; i++) {
+			if (length % 2 != 0)
+			{
+				swap(fires[i], fires[length]);
+			}
+			else
+			{
+				swap(fires[0], fires[length]);
+			}
+			heapPermNew(length);
+		}
+	}
+}
+
+void createExtinguishTableNew(void) {
+	int size = terrain.size();
+	extinguishedMatrix = new map<int, bool>* [size];
+
+	map<int, bool> extinguished;
+	for (int i = 0; i < size; i++) {
+		extinguished.insert({ i,false });
+	}
+
+	for (int i = 0; i < size; i++) {
+		extinguishedMatrix[i] = new map<int, bool> [size];
+		for (int j = 0; j < size; j++) {
+			extinguishedMatrix[i][j] = extinguished;
+		}
+	}
+
+	for (int i = 1; i < terrain.size(); i++) 
+	{
+		coordinate start = terrain.at(i);
+		coordinate end = terrain.at(i - 1);
+
+		int pointStart = i - 1;
+		int pointEnd = i;
+
+		//get the gradient of start -> end line
+		double gradientLine = (start.y - end.y) * 1.0 / (start.x - end.x);
+
+		//find shortest distance between fire point and start->end line
+		//get constant to get eqn of start -> end line (y = gradientLine(x) + constantLine)
+		double constantLine = start.y - (gradientLine * start.x);
+
+		coordinate tempFirePointCoordinate;
+		//loop all the fire around to check if extinguishable
+		for (int j = 1; j < terrain.size(); j++)
+		{
+			if (i != pointStart && i != pointEnd)
+			{
+				tempFirePointCoordinate = terrain.at(i);
+				//calculate shortest distance between fire point to start->end line
+				double shortestDistFireToLine = getShortestDistanceFromPointToLine(gradientLine, -1, constantLine, tempFirePointCoordinate);
+				//check if the y-distance between point and start->end line < 50, if yes, extinguish fire
+				if (shortestDistFireToLine <= 50)
+				{
+					//check if the x-coordinate of point is within start->end line, if yes, extinguish fire
+					//get eqn of left, right line that are perpendicular to start->end line and intersects start/end point.
+					double gradientLeftRight = (-1.0 / gradientLine);
+					double constantStart = start.y - (gradientLeftRight * start.x);
+					double constantEnd = end.y - (gradientLeftRight * end.x);
+
+					//calculate shortest distance between fire point to left/right line
+					double shortestDistPointToStartLine = getShortestDistanceFromPointToLine(gradientLeftRight, -1, constantStart, tempFirePointCoordinate);
+					double shortestDistPointToEndLine = getShortestDistanceFromPointToLine(gradientLeftRight, -1, constantEnd, tempFirePointCoordinate);
+					double sumOfshortestDistPointToStartAndEndLine = shortestDistPointToStartLine + shortestDistPointToEndLine;
+					//the index passed is the index terrain of distanceGraph
+					double distanceBetweenPoints = distanceMatrix[pointStart][pointEnd];
+
+					//check if the x-coordinate of point is within start->end line, if yes, extinguish fire
+					if (definitelyLessThan(sumOfshortestDistPointToStartAndEndLine, distanceBetweenPoints) || essentiallyEqual(sumOfshortestDistPointToStartAndEndLine, distanceBetweenPoints))
+					{
+						//record fire extinguished into table
+						extinguishedMatrix[pointStart][pointEnd].find(i)->second = true;
+						//distanceGraph.at(pointStart).edgeList.at(pointEnd).extinguished.find(i)->second = true;
+					}
+				}
+			}
+		}
+	}
+
+}
+
+double getDistanceBetweenPointsNew(int start, int end)
+{
+	double x = terrain.at(end).x - terrain.at(start).x;
+	double y = terrain.at(end).y - terrain.at(start).y;
+	return sqrt((x * x) + (y * y));
+}
+
+void performFloydWarshall() {
+	int size = terrain.size();
+	distanceMatrix = new double* [size];
+	shortestRoutes = new route * [size];
+
+
+	for (int i = 0; i < size; i++) {
+		distanceMatrix[i] = new double[size];
+		shortestRoutes[i] = new route[size];
+	}
+
+	map<int, bool> extinguished;
+	for (int i = 0; i < size; i++) {
+		extinguished.insert({ i,false });
+	}
+
+	for (int i = 0; i < size; i++)
+	{
+		for (int j = 0; j < size; j++)
+		{
+			shortestRoutes[i][j].extinguished = extinguished;
+			if (i == j) {
+				distanceMatrix[i][j] = 0;
+			}
+			else
+			{
+				distanceMatrix[i][j] = getDistanceBetweenPointsNew(i,j);
+			}
+		}
+	}
+
+	//int cardinality = size;
+	//vector<coordinate> temp;
+	//temp.reserve(3);
+	//for (int k = 0; k < cardinality; k++) 
+	//{
+	//	for (int i = 0; i < cardinality; i++)
+	//	{
+	//		for (int j = 0; j < cardinality; j++)
+	//		{
+	//			cout << i << " " << j << " " << k << endl;
+	//			if (i != j) {
+	//				
+	//				bool swapped = false;
+	//				if (i > j) {
+	//					swap(i, j);
+	//					swapped = true;
+	//				}
+	//				cout << i << " == " << j << " == " << k << endl;
+	//				if (distanceGraph.at(i).edgeList.at(j - (i + 1)).extinguished.find(k)->second)
+	//				{
+	//					cout << "yes" << endl;
+	//					shortestRoutes[i][j].extinguished.find(k)->second = true;
+	//					shortestRoutes[i][j].extinguishedFire.push_back(k);
+	//				}
+	//				if(swapped)
+	//					swap(i, j);
+	//				cout << i << " == " << j << " == " << k << endl;
+	//			}
+
+	//			/*for (int l = 0; l < distanceGraph.at(i).edgeList.at(j - (i + 1)).fireExtinguished.size(); l++) {
+	//				if (distanceGraph.at(i).edgeList.at(j - (i + 1)).fireExtinguished.at(l).name.compare(fire.at(k - 1).name) == 0)
+	//				{
+	//					shortestRoutes[i][j].extinguishedFire.push_back(k);
+
+	//				}
+	//				else
+	//				{
+	//					if (distance[i][j] > distance[i][k] + distance[k][j])
+	//					{
+	//						shortestRoutes[i][j].passedVertex.push_back(k);
+	//					}
+	//				}
+	//				distance[i][j] = distance[i][k] + distance[k][j];
+	//			}*/
+	//			/*if (distance[i][j] > distance[i][k] + distance[k][j]) {
+	//				distance[i][j] = distance[i][k] + distance[k][j];
+	//				cout << "aaa";
+	//			}*/
+
+	//		}
+	//	}
+	//}
+
+	//free memory
+	//for (int i = 0; i < size; i++)
+	//{
+	//	delete[] distanceMatrix[i];
+	//}
+	//delete[] distanceMatrix;
+	delete[] shortestRoutes;
+}
 
 int main(void) {
+
 	readLocation();
+	performFloydWarshall();
+	createExtinguishTableNew();
 	//there exists fire
-	if (distanceGraph.size() > 1) {
-		heapPerm(fire.size());
+	if (terrain.size() > 1) {
+		shortestAirplaneToAirplane = new int(terrain.size());
+		shortestAirplaneToAirplane[0] = 1;
+		heapPermNew(terrain.size() - 1);
 	}
 	saveLocation();
+	
 	return 0;
 }
 
@@ -178,11 +517,10 @@ void heapPerm(int length)
 }
 
 void readLocation(void) {
-	struct coordinate temp;
-	vertexStart pointInTerrain;
 
 	string txt;
 	ifstream inFile("terrain.txt");
+	coordinate terrainCoordinate;
 	if (!inFile.is_open()) {
 		cout << "Terrain file is not found!.\n";
 		return;
@@ -191,66 +529,33 @@ void readLocation(void) {
 	{
 		while (inFile >> txt)
 		{
-			//is fire
-			if (txt[0] == 'F')
-			{
-				temp.name = txt;
-				inFile >> temp.x;
-				inFile >> temp.y;
-				fire.push_back(temp);
-
-				pointInTerrain.startName = temp.name;
-			}
 			//is tree
-			else if (txt[0] == 'T')
+			if (txt[0] == 'T')
 			{
 				inFile >> txt;
 				inFile >> txt;
 				continue;
 			}
-			//is airport
+			//is airport/fire
 			else
 			{
-				airport.name = txt;
-				inFile >> airport.x;
-				inFile >> airport.y;
-
-				pointInTerrain.startName = airport.name;
+				terrainCoordinate.name = txt;
+				inFile >> terrainCoordinate.x;
+				inFile >> terrainCoordinate.y;
 			}
-			distanceGraph.push_back(pointInTerrain);
+			//create terrain
+			terrain.push_back(terrainCoordinate);
 		}
 		inFile.close();
 	}
 
-	//insert all vertex name into distanceGraph (X check)
-	vertexEnd destination;
-	for (int i = 0; i < distanceGraph.size(); i++)
+	//create fires
+	fires = new int(terrain.size() - 1);
+	for (int i = 1; i < terrain.size(); i++)
 	{
-		distanceGraph.at(i).edgeList.reserve(distanceGraph.size() - (i + 1));
-		for (int j = i + 1; j < distanceGraph.size(); j++)
-		{
-			//create distance table between two points of all points
-			if (i == 0) {
-				destination.distance = getDistanceBetweenPoints(airport, fire.at(j - 1));
-			}
-			else {
-				destination.distance = getDistanceBetweenPoints(fire.at(i - 1), fire.at(j - 1));
-			}
-			destination.destinationName = distanceGraph.at(j).startName;
-			distanceGraph.at(i).edgeList.push_back(destination);
-		}
-
+		fires[i - 1] = i;
 	}
 
-	//create extinguish table
-	for (int i = 0; i < distanceGraph.size(); i++)
-	{
-		for (int j = i + 1; j < distanceGraph.size(); j++)
-		{
-			//create distance table between two points of all points
-			createExtinguishTable(i, j);
-		}
-	}
 }
 
 void saveLocation(void) {
@@ -387,6 +692,7 @@ void createExtinguishTable(int indexStart, int indexEnd) {
 					//record fire extinguished into table
 					//the indexStart is index of distanceGraph, indexEnd is index of edgeList;
 					distanceGraph.at(indexStart).edgeList.at(indexEnd).fireExtinguished.push_back(tempFirePointCoordinate);
+					distanceGraph.at(indexStart).edgeList.at(indexEnd).extinguished.find(i + 1)->second = true;
 				}
 			}
 		}
