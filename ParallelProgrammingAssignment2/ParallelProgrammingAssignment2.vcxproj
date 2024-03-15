@@ -139,7 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <Text Include="..\..\ParallelAssignment2\ParallelAssignment2\ParallelAssignmentTryDjikstra\terrain.txt" />
+    <Text Include="terrain.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source.cpp" />
