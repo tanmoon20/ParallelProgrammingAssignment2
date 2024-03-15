@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="..\..\ParallelAssignment2\ParallelAssignment2\ParallelAssignmentTryDjikstra\terrain.txt">
+    <Text Include="terrain.txt">
       <Filter>Resource Files</Filter>
     </Text>
   </ItemGroup>

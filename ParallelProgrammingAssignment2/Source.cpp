@@ -96,7 +96,7 @@ double getTotalDistance(vector<coordinate>& fireTemp) {
 			{
 				nextVertex = fireTemp2.at(2);
 				distanceComparedIgnoredExtinguished = totalDistance + getDistanceFromDistanceTable(indexFirstFireTemp, getVertexIndex(fireTemp2.at(1).name)) + getDistanceFromDistanceTable(getVertexIndex(fireTemp2.at(1).name), getVertexIndex(fireTemp2.at(2).name));
-				distanceComparedPassedExtinguished = totalDistance + getDistanceFromDistanceTable(indexFirstFireTemp,getVertexIndex(fireTemp.at(2).name))
+				distanceComparedPassedExtinguished = totalDistance + getDistanceFromDistanceTable(indexFirstFireTemp, getVertexIndex(fireTemp.at(2).name));
 			}
 		}
 	}
